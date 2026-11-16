@@ -65,7 +65,8 @@ async function showQr(stateDir: string): Promise<void> {
   const file = path.join(stateDir, "login-qr.png");
   fs.writeFileSync(file, scalePng(png, 4), { mode: 0o600 });
   fs.chmodSync(file, 0o600);
-  console.log("\n카카오톡 앱으로 아래 QR 코드를 스캔하세요 (약 5분간 유효).\n");
+  console.log("\n카카오톡 앱 안의 스캐너로 아래 QR 코드를 스캔하세요 (약 5분간 유효).");
+  console.log("카카오톡 → 더보기 → 우측 상단 스캔 버튼. 아이폰 기본 카메라로 찍으면 열리지 않습니다.\n");
   console.log(await renderQrTerminal(text));
   console.log(`QR 이미지: ${file}`);
   if (openImage && process.platform === "darwin") execFileSync("open", [file]);
