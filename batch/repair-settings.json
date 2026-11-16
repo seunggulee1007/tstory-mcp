@@ -1,0 +1,33 @@
+{
+  "disableAllHooks": true,
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./src/**)",
+      "Read(./test/**)",
+      "Read(./recordings/ENDPOINTS.md)",
+      "Read(./.repair-input/**)",
+      "Grep",
+      "Glob",
+      "Edit(./src/schemas.ts)",
+      "Edit(./src/client.ts)",
+      "Edit(./recordings/ENDPOINTS.md)",
+      "Edit(./test/**)",
+      "Write(./test/**)"
+    ],
+    "deny": [
+      "Read(~/**)",
+      "Read(//**/.secrets/**)",
+      "Read(**/.secrets/**)",
+      "Read(**/.env*)",
+      "Read(**/*.har)",
+      "Edit(**/.secrets/**)",
+      "Edit(**/.env*)",
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Task",
+      "Agent"
+    ]
+  }
+}
