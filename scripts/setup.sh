@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # tstory-mcp 한 번에 설치
 #
-#   npm run setup                       # 의존성 + 브라우저 + 빌드 + 기본 파일
-#   npm run setup -- --login --mcp      # + 카카오 QR 로그인 + Claude Code 에 MCP 등록
-#   npm run setup -- --cron             # + 6시간마다 배치 실행 크론 등록 (서버용)
+#   npm run setup                            # 의존성 + 브라우저 + 빌드 + 기본 파일
+#   npm run setup -- --login                 # + 카카오 QR 로그인
+#   npm run setup -- --mcp=~/work/my-blog    # + 그 프로젝트에서만 쓰도록 MCP 등록 (local 범위)
+#   npm run setup -- --mcp-global            # + 모든 프로젝트에서 쓰도록 MCP 등록 (user 범위)
+#   npm run setup -- --cron                  # + 6시간마다 배치 실행 크론 등록 (서버용)
 #
 # 여러 번 실행해도 안전합니다(이미 된 단계는 건너뜀).
 set -euo pipefail
@@ -12,17 +14,22 @@ umask 077
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-DO_LOGIN=0; DO_MCP=0; DO_CRON=0
+DO_LOGIN=0; DO_CRON=0; MCP_SCOPE=""; MCP_DIR=""
 for a in "$@"; do
   case "$a" in
     --login) DO_LOGIN=1 ;;
-    --mcp) DO_MCP=1 ;;
+    --mcp=*) MCP_SCOPE=local; MCP_DIR="${a#--mcp=}"; MCP_DIR="${MCP_DIR/#\~/$HOME}" ;;
+    --mcp) echo "--mcp 에는 쓸 프로젝트 경로를 붙이세요: --mcp=<경로>  (모든 프로젝트에 등록하려면 --mcp-global)" >&2; exit 2 ;;
+    --mcp-global) MCP_SCOPE=user ;;
     --cron) DO_CRON=1 ;;
-    --all) DO_LOGIN=1; DO_MCP=1 ;;
-    -h|--help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "알 수 없는 옵션: $a (--help 참고)" >&2; exit 2 ;;
   esac
 done
+if [[ "$MCP_SCOPE" == local ]]; then
+  [[ -d "$MCP_DIR" ]] || { echo "프로젝트 경로가 없습니다: $MCP_DIR" >&2; exit 2; }
+  MCP_DIR="$(cd "$MCP_DIR" && pwd)"
+fi
 
 if [[ -t 1 ]]; then B=$'\033[1m'; G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; D=$'\033[2m'; N=$'\033[0m'; else B=; G=; Y=; R=; D=; N=; fi
 step() { printf '\n%s▸ %s%s\n' "$B" "$1" "$N"; }
@@ -95,14 +102,17 @@ if [[ "$DO_LOGIN" == 1 ]]; then
 fi
 
 # ── 7. Claude Code 에 MCP 등록 (선택) ───────────────────────────────
-if [[ "$DO_MCP" == 1 ]]; then
-  step "Claude Code 에 MCP 서버 등록"
+if [[ -n "$MCP_SCOPE" ]]; then
+  step "Claude Code 에 MCP 서버 등록 ($MCP_SCOPE 범위)"
   command -v claude >/dev/null 2>&1 || die "claude 가 없어 등록할 수 없습니다 (위 설치 안내 참고)"
-  if claude mcp get tistory >/dev/null 2>&1; then
-    ok "이미 등록돼 있음 (다시 등록하려면: claude mcp remove tistory -s user)"
+  # local 범위는 그 프로젝트 디렉터리에서 실행해야 그 프로젝트에만 등록된다 (~/.claude.json 에 저장, 저장소엔 안 남음)
+  TARGET_DIR="${MCP_DIR:-$HOME}"
+  if (cd "$TARGET_DIR" && claude mcp get tistory >/dev/null 2>&1); then
+    ok "이미 등록돼 있음 (다시 등록하려면: cd $TARGET_DIR && claude mcp remove tistory -s $MCP_SCOPE)"
   else
-    claude mcp add tistory -s user -e TISTORY_STATE_FILE="$STATE" -- node "$ROOT/dist/src/server.js" >/dev/null
-    ok "등록 완료: 모든 프로젝트에서 사용 가능 (새 Claude Code 세션부터 보임)"
+    (cd "$TARGET_DIR" && claude mcp add tistory -s "$MCP_SCOPE" -e TISTORY_STATE_FILE="$STATE" -- node "$ROOT/dist/src/server.js" >/dev/null)
+    if [[ "$MCP_SCOPE" == local ]]; then ok "등록 완료: $MCP_DIR 에서만 사용 (새 Claude Code 세션부터 보임)"
+    else ok "등록 완료: 모든 프로젝트에서 사용 (새 Claude Code 세션부터 보임)"; fi
   fi
 fi
 
@@ -121,6 +131,6 @@ if [[ -f "$STATE" ]]; then
 else
   warn "아직 로그인하지 않았습니다 →  npm run login"
 fi
-[[ "$DO_MCP" == 1 ]] || echo "  ${D}Claude Code 에 등록 →  npm run setup -- --mcp${N}"
+[[ -n "$MCP_SCOPE" ]] || echo "  ${D}Claude Code 에 등록 →  npm run setup -- --mcp=<쓸 프로젝트 경로>${N}"
 [[ "$DO_CRON" == 1 ]] || echo "  ${D}서버에서 주기 실행 →  npm run setup -- --cron${N}"
 echo "  ${D}동작 확인 →  npm run healthcheck${N}"

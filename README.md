@@ -62,7 +62,7 @@
 
 ```bash
 git clone https://github.com/seunggulee1007/tstory-mcp.git tstory-mcp && cd tstory-mcp
-npm run setup -- --login --mcp
+npm run setup -- --login --mcp=~/work/my-blog     # 블로그 글을 쓸 프로젝트 경로
 ```
 
 이 한 줄이 다음을 순서대로 합니다.
@@ -70,9 +70,9 @@ npm run setup -- --login --mcp
 1. Node·npm·git·Claude Code를 확인합니다.
 2. 의존성과 헤드리스 브라우저를 설치하고 빌드합니다.
 3. 터미널에 **QR을 띄웁니다**. 카카오톡으로 스캔하세요.
-4. Claude Code에 `tistory` MCP 서버를 등록합니다.
+4. **지정한 프로젝트에서만** 쓰이도록 Claude Code에 `tistory` MCP 서버를 등록합니다.
 
-설치가 끝나면 **새 Claude Code 세션**을 열고 이렇게 말해 보세요.
+설치가 끝나면 그 프로젝트에서 **새 Claude Code 세션**을 열고 이렇게 말해 보세요.
 
 > 내 티스토리 최근 글 5개 보여줘
 
@@ -113,9 +113,13 @@ curl -fsSL https://claude.ai/install.sh | bash
 |---|---|
 | `npm run setup` | 요구사항 확인 → `npm ci` → Chrome for Testing 설치 (Linux는 시스템 라이브러리 포함) → 빌드 → `.secrets/`(700)·`.env` 준비 |
 | `npm run setup -- --login` | + 카카오 QR 로그인 |
-| `npm run setup -- --mcp` | + Claude Code에 `tistory` MCP 등록 (user 범위, 모든 프로젝트에서 사용) |
+| `npm run setup -- --mcp=<프로젝트 경로>` | + 그 프로젝트에서만 쓰도록 `tistory` MCP 등록 (local 범위, **권장**) |
+| `npm run setup -- --mcp-global` | + 모든 프로젝트에서 쓰도록 등록 (user 범위) |
 | `npm run setup -- --cron` | + 6시간마다 배치 실행 크론 등록 (서버용) |
-| `npm run setup -- --all` | `--login --mcp` |
+
+> **왜 프로젝트별 등록을 권장하나요?** 전역으로 등록하면 회사 업무 프로젝트를 포함한 **모든** Claude Code 세션에 블로그 쓰기 도구가 노출됩니다. 업무 대화 중에 실수로 블로그에 글이 올라가거나, 업무 내용이 블로그 도구로 흘러갈 여지를 아예 없애려면 블로그를 쓰는 프로젝트에만 등록하세요.
+>
+> local 범위 등록 정보는 `~/.claude.json`의 해당 프로젝트 항목에만 저장되고, 그 프로젝트 저장소에는 아무 파일도 생기지 않습니다(`.mcp.json`을 쓰는 project 범위와 다름). 공개 저장소에서도 안심하고 쓸 수 있습니다.
 
 <details>
 <summary><b>수동으로 설치하고 싶다면</b></summary>
@@ -126,9 +130,13 @@ npx agent-browser install            # Linux: npx agent-browser install --with-d
 npm run build
 cp .env.example .env
 npm run login
-claude mcp add tistory -s user \
-  -e TISTORY_STATE_FILE="$PWD/.secrets/state.json" \
-  -- node "$PWD/dist/src/server.js"
+
+# 블로그 글을 쓸 프로젝트 안에서 local 범위로 등록
+TSTORY="$PWD"
+cd ~/work/my-blog
+claude mcp add tistory -s local \
+  -e TISTORY_STATE_FILE="$TSTORY/.secrets/state.json" \
+  -- node "$TSTORY/dist/src/server.js"
 ```
 
 </details>
