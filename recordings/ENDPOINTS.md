@@ -25,7 +25,7 @@
 | 글 단건(수정용) | GET | `{B}/newpost/{id}` | - | HTML. `window.Config = {...}` 의 `post` = `{id,title,slogan,content(HTML),visibility(0/15/20),category,tags:[],acceptComment,password,thumbnail,...}` |
 | 발행 | POST | `{B}/post.json` | JSON (아래) `id:"0"`, `published:1` | `{entryUrl:"https://{blog}.tistory.com/{id}"}` ← id는 URL 끝에서 추출 |
 | 수정 | PUT | `{B}/post/{id}.json` | JSON (아래) `id:"{id}"`, `published:0`, `acceptComment:1`, `thumbnail:null`, `daumLike:null` | `{entryUrl}` |
-| 삭제 | DELETE | `{B}/post/{id}.json` | - | `{data:{id}}` |
+| 삭제 | DELETE | `{B}/post/{id}.json` | - | `{data: 193}` (삭제된 글 id, 숫자) |
 | 임시저장 목록 | GET | `{B}/drafts` | - | `{success, data:[{sequence,title,summary,tags,categoryId,createdAt,updatedAt}]}` |
 | 임시저장 생성 | POST | `{B}/drafts` | `{title,content,tags,categoryId,totalWritingTimeMs}` | `{success,total,draft:{sequence}}` |
 | 임시저장 삭제 | DELETE | `{B}/drafts/{sequence}` | - | `{success,total}` |

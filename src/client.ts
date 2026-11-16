@@ -315,7 +315,7 @@ export class TistoryClient {
   async deletePost(id: string | number) {
     const B = await this.base();
     const d = await this.json("DELETE", `${B}/post/${id}.json`, DeletePostSchema);
-    return { id: String(d.data.id) };
+    return { id: String(typeof d.data === "object" ? d.data.id : d.data) };
   }
 
   async listDrafts(): Promise<DraftItem[]> {

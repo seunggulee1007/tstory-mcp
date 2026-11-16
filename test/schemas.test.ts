@@ -13,7 +13,8 @@ describe("스키마 (sanitized fixture)", () => {
     ["draftDelete", S.DraftDeleteSchema, F.draftDelete],
     ["attach", S.AttachSchema, F.attach],
     ["entryUrl", S.EntryUrlSchema, { entryUrl: "https://testblog.tistory.com/13" }],
-    ["deletePost", S.DeletePostSchema, { data: { id: "13" } }],
+    ["deletePost (실측: 숫자)", S.DeletePostSchema, { data: 193 }],
+    ["deletePost (객체)", S.DeletePostSchema, { data: { id: "13" } }],
   ])("%s 통과", (_n, schema, data) => {
     expect(schema.safeParse(data).success).toBe(true);
   });

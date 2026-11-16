@@ -67,7 +67,10 @@ export const ConfigSchema = z.object({ post: PostDetailSchema }).passthrough();
 
 export const EntryUrlSchema = z.object({ entryUrl: z.string() }).passthrough();
 
-export const DeletePostSchema = z.object({ data: z.object({ id: idLike }).passthrough() }).passthrough();
+// 실측 응답은 {"data":193} (숫자). 객체 형태도 허용해 둔다.
+export const DeletePostSchema = z
+  .object({ data: z.union([idLike, z.object({ id: idLike }).passthrough()]) })
+  .passthrough();
 
 export const DraftItemSchema = z
   .object({

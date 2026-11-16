@@ -124,7 +124,7 @@ describe("TistoryClient (mock fetch)", () => {
       if (u.endsWith("/drafts") && init.method === "POST") return json(F.draftCreate);
       if (u.includes("/drafts/")) return json(F.draftDelete);
       if (u.endsWith("/drafts")) return json(F.drafts);
-      return json({ data: { id: "5" } });
+      return json({ data: 5 });
     });
     expect(await client.deletePost(5)).toEqual({ id: "5" });
     expect((await client.listDrafts())[0]!.sequence).toBe(3);
