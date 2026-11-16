@@ -20,9 +20,9 @@ export function decodeQrPng(png: Buffer): string {
   return r.data;
 }
 
-/** 터미널용 QR 문자열 (작은 블록 문자) */
+/** 터미널용 QR 문자열. 반각 블록(small)은 줄 간격·글꼴에 따라 깨져서 배경색 칸으로 그린다 */
 export function renderQrTerminal(text: string): Promise<string> {
-  return QRCode.toString(text, { type: "terminal", small: true });
+  return QRCode.toString(text, { type: "terminal" });
 }
 
 /** 최근접 이웃 확대 (저해상도 캔버스 QR 을 파일로 볼 때 흐려지지 않게) */
