@@ -41,7 +41,7 @@ esac
 
 if ! command -v node >/dev/null 2>&1; then
   warn "Node.js 가 없습니다. 아래 중 하나로 설치한 뒤 다시 실행하세요."
-  if [[ "$OS" == Darwin ]]; then echo "      brew install node@24"; fi
+  if [[ "$OS" == Darwin ]]; then echo "      brew bundle            # 이 저장소의 Brewfile: node + git + claude-code"; fi
   echo "      curl https://mise.run | sh && mise use -g node@24"
   die "Node.js 22.12 이상 필요"
 fi
