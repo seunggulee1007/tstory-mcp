@@ -61,7 +61,7 @@
 ## 빠른 시작
 
 ```bash
-git clone <저장소 URL> tstory-mcp && cd tstory-mcp
+git clone https://github.com/seunggulee1007/tstory-mcp.git tstory-mcp && cd tstory-mcp
 npm run setup -- --login --mcp
 ```
 
@@ -238,7 +238,7 @@ npm run login -- --headed  # 브라우저 창을 눈으로 보면서 진행
 
 ```bash
 # 서버에서
-git clone <저장소 URL> tstory-mcp && cd tstory-mcp
+git clone https://github.com/seunggulee1007/tstory-mcp.git tstory-mcp && cd tstory-mcp
 npm run setup -- --login --cron     # QR은 SSH 터미널에 그대로 뜹니다
 vi .env                             # NOTIFY_WEBHOOK_URL 입력
 ```
