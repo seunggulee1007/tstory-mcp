@@ -12,7 +12,8 @@ describe("QR 해독 → 터미널 렌더", () => {
 
     const term = await renderQrTerminal(decodeQrPng(png));
     expect(term.split("\n").length).toBeGreaterThan(10);
-    expect(term).toMatch(/[▀▄█]/);
+    expect(term).not.toMatch(/[▀▄]/);
+    expect(term).toMatch(/\x1b\[4[07]m/);
   });
 
   it("4배 확대한 이미지도 해독된다", async () => {
