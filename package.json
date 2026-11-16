@@ -1,0 +1,38 @@
+{
+  "name": "tstory-mcp",
+  "version": "1.0.0",
+  "description": "티스토리 내부(비공식) 웹 API 기반 MCP 서버 + 자가복구 배치",
+  "type": "module",
+  "bin": {
+    "tstory-mcp": "dist/src/server.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node dist/src/server.js",
+    "login": "tsx src/cli/login.ts",
+    "healthcheck": "tsx batch/healthcheck.ts",
+    "record": "tsx batch/record.ts",
+    "summarize": "tsx batch/summarize-har.ts",
+    "cleanup": "tsx batch/cleanup-browsers.ts"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "jsqr": "^1.4.0",
+    "marked": "^18.2.0",
+    "pngjs": "^7.0.0",
+    "qrcode": "^1.5.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pngjs": "^6.0.5",
+    "@types/qrcode": "^1.5.6",
+    "agent-browser": "^0.43.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

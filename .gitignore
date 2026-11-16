@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.secrets/
+recordings/*.har
+recordings/drift-*
+.env
+.env.*
+!.env.example
+reports/
+.omc/
+.claude/
+.repair-input/
