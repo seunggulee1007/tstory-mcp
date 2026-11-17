@@ -46,19 +46,20 @@ export function keepTistoryCookies<T extends { cookies: StoredCookie[] }>(state:
   return { ...state, cookies: state.cookies.filter((c) => typeof c.domain === "string" && isTistoryCookieDomain(c.domain)) };
 }
 
-/** 임시 파일 + fsync + rename 으로 원자적으로 쓴다 (0600). */
+/** 임시 파일 + fsync + rename 으로 원자적으로 쓴다 (0600). 티스토리 쿠키만 저장한다. */
 function writeStateAtomic(file: string, state: StateFile): StateFile {
+  const filtered = keepTistoryCookies(state);
   const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
   const fd = fs.openSync(tmp, "w", 0o600);
   try {
-    fs.writeFileSync(fd, JSON.stringify(state, null, 2));
+    fs.writeFileSync(fd, JSON.stringify(filtered, null, 2));
     fs.fsyncSync(fd);
   } finally {
     fs.closeSync(fd);
   }
   fs.chmodSync(tmp, 0o600);
   fs.renameSync(tmp, file);
-  return state;
+  return filtered;
 }
 
 /** state 파일 쓰기용 락 (npm run login 과 MCP/배치가 같은 락을 쓴다). 오래된 락은 회수한다. */
