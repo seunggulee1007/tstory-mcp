@@ -8,6 +8,8 @@ import { buildPlaceholder, parseImageSize } from "./image.js";
 import {
   AttachSchema,
   CategoriesSchema,
+  CategorySaveSchema,
+  CategoryTreeSchema,
   ConfigSchema,
   DeletePostSchema,
   DraftCreateSchema,
@@ -177,9 +179,9 @@ export class TistoryClient {
     method: string,
     url: string,
     schema: S,
-    init: { body?: BodyInit; json?: unknown } = {},
+    init: { body?: BodyInit; json?: unknown; referer?: string } = {},
   ): Promise<z.infer<S>> {
-    const r = await this.raw(method, url, { ...init, referer: `https://${this.blogName ?? "www"}.tistory.com/manage/newpost` });
+    const r = await this.raw(method, url, { ...init, referer: init.referer ?? `https://${this.blogName ?? "www"}.tistory.com/manage/newpost` });
     return this.parseJson(this.endpointName(method, url), r, schema);
   }
 
@@ -244,6 +246,68 @@ export class TistoryClient {
     const hit = flat.find((c) => c.path === cat) ?? flat.find((c) => c.name === cat);
     if (!hit) throw new Error(`카테고리를 찾을 수 없습니다: ${cat}`);
     return hit.id;
+  }
+
+  /**
+   * 카테고리를 만든다 (parent 생략 시 최상위). 티스토리는 2단계까지만 지원하므로 parent 는 최상위여야 한다.
+   * 저장 API(PUT category.json)는 전체 트리가 아닌 변경분(diff)을 받는다. 응답(categoryTree)에 의존하지 않도록
+   * 저장 후 simple.json 을 다시 읽어 새 카테고리를 찾는다.
+   */
+  async createCategory(input: { name: string; parent?: string | number | undefined }): Promise<FlatCategory> {
+    const name = input.name.trim();
+    if (!name) throw new Error("카테고리 이름이 비어 있습니다");
+    if (name.includes("/")) throw new Error('카테고리 이름에 "/" 를 쓸 수 없습니다 (계층 경로 구분자)');
+
+    const B = await this.base();
+    const referer = `${B}/category`;
+    const tree = await this.json("GET", `${B}/category.json`, CategoryTreeSchema, { referer });
+    const rootLabel = tree.rootLabel; // 지어내지 않는다: 사용자가 바꾼 루트 이름을 덮어쓸 수 있음
+
+    let parent: FlatCategory | undefined;
+    let siblings: CategoryNode[] = tree.categories;
+    const hasParent = input.parent !== undefined && input.parent !== "";
+    if (hasParent) {
+      const flat = flattenCategories(tree.categories);
+      const key = String(input.parent);
+      parent = /^-?\d+$/.test(key) ? flat.find((c) => c.id === Number(key)) : (flat.find((c) => c.path === key) ?? flat.find((c) => c.name === key));
+      if (!parent) throw new Error(`부모 카테고리를 찾을 수 없습니다: ${key}`);
+      const parentNode = tree.categories.find((c) => c.id === parent!.id);
+      if (!parentNode) throw new Error(`하위 카테고리 아래에는 만들 수 없습니다 (최상위 카테고리만 부모가 될 수 있음): ${parent.path}`);
+      siblings = parentNode.children ?? [];
+    }
+    if (siblings.some((c) => c.name === name)) {
+      throw new Error(`같은 위치에 이미 같은 이름의 카테고리가 있습니다: ${parent ? `${parent.path}/` : ""}${name}`);
+    }
+
+    const node = {
+      id: -1,
+      name,
+      children: [],
+      depth: parent ? 2 : 1,
+      opened: true,
+      priority: siblings.length,
+      visibility: 20,
+      parent: parent ? parent.id : 0,
+      viewChannel: null,
+      entries: 0,
+      categoryInfo: {},
+      isNew: true,
+      updatedData: true,
+      ...(parent ? { label: `${parent.name}/` } : {}),
+    };
+    await this.json("PUT", `${B}/category.json`, CategorySaveSchema, {
+      json: { rootLabel, delete: [], append: [node], update: [node] },
+      referer,
+    });
+
+    const path = parent ? `${parent.path}/${name}` : name;
+    const created = (await this.listCategories()).find((c) => c.path === path);
+    if (!created) {
+      throw new ContractError("PUT /manage/category.json", [
+        { code: "custom", path: ["categories"], message: `저장 후 새 카테고리를 찾지 못함 (API 변경 가능성): ${path}` },
+      ]);
+    }
+    return created;
   }
 
   private postBody(id: string, published: 0 | 1, p: PostInput) {

@@ -172,5 +172,6 @@ describe("MCP 서버 안전장치", () => {
     expect(by.tistory_delete_post).toMatchObject({ destructiveHint: true });
     expect(by.tistory_publish_post).toMatchObject({ destructiveHint: true });
     expect(by.tistory_update_post).toMatchObject({ destructiveHint: true });
+    expect(by.tistory_create_category).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true });
   });
 });

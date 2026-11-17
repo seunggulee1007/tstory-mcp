@@ -7,6 +7,8 @@ describe("스키마 (sanitized fixture)", () => {
     ["myBlogs", S.MyBlogsSchema, F.myBlogs],
     ["posts", S.PostListSchema, F.posts],
     ["categories", S.CategoriesSchema, F.categories],
+    ["categoryTree", S.CategoryTreeSchema, F.categoryTree],
+    ["categorySave (형태 미검증: 임의 객체)", S.CategorySaveSchema, { categoryTree: {} }],
     ["config", S.ConfigSchema, { post: F.postDetail }],
     ["drafts", S.DraftListSchema, F.drafts],
     ["draftCreate", S.DraftCreateSchema, F.draftCreate],
