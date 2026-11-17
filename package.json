@@ -16,6 +16,7 @@
     "test": "vitest run",
     "start": "node dist/src/server.js",
     "login": "tsx src/cli/login.ts",
+    "prune-cookies": "tsx src/cli/prune-cookies.ts",
     "healthcheck": "tsx batch/healthcheck.ts",
     "record": "tsx batch/record.ts",
     "summarize": "tsx batch/summarize-har.ts",
