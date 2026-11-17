@@ -35,6 +35,21 @@ function readState(file: string): StateFile {
   return st;
 }
 
+/** 임시 파일 + fsync + rename 으로 원자적으로 쓴다 (0600). */
+function writeStateAtomic(file: string, state: StateFile): StateFile {
+  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
+  const fd = fs.openSync(tmp, "w", 0o600);
+  try {
+    fs.writeFileSync(fd, JSON.stringify(state, null, 2));
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.chmodSync(tmp, 0o600);
+  fs.renameSync(tmp, file);
+  return state;
+}
+
 /** state 파일 쓰기용 락 (npm run login 과 MCP/배치가 같은 락을 쓴다). 오래된 락은 회수한다. */
 export function withStateLock<T>(stateFile: string, fn: () => T): T {
   const lock = `${stateFile}.lock`;
@@ -127,17 +142,7 @@ export class Session {
   }
 
   private write(state: StateFile): void {
-    const tmp = path.join(path.dirname(this.stateFile), `.${path.basename(this.stateFile)}.${process.pid}.tmp`);
-    const fd = fs.openSync(tmp, "w", 0o600);
-    try {
-      fs.writeFileSync(fd, JSON.stringify(state, null, 2));
-      fs.fsyncSync(fd);
-    } finally {
-      fs.closeSync(fd);
-    }
-    fs.chmodSync(tmp, 0o600);
-    fs.renameSync(tmp, this.stateFile);
-    this.state = state;
+    this.state = writeStateAtomic(this.stateFile, state);
     this.mtimeMs = fs.statSync(this.stateFile).mtimeMs;
   }
 }
