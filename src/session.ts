@@ -35,6 +35,42 @@ function readState(file: string): StateFile {
   return st;
 }
 
+/** 티스토리 도메인 쿠키인지 (앞의 "." 제거·소문자화 후 tistory.com 이거나 .tistory.com 로 끝나는 경우만) */
+export function isTistoryCookieDomain(domain: string): boolean {
+  const d = domain.replace(/^\./, "").toLowerCase();
+  return d === "tistory.com" || d.endsWith(".tistory.com");
+}
+
+/** 티스토리 도메인 쿠키만 남긴다 (카카오 계정 쿠키 등은 쓰지 않으므로 저장하지 않는다). origins 등 다른 키는 그대로 둔다. */
+export function keepTistoryCookies<T extends { cookies: StoredCookie[] }>(state: T): T {
+  return { ...state, cookies: state.cookies.filter((c) => typeof c.domain === "string" && isTistoryCookieDomain(c.domain)) };
+}
+
+/** 임시 파일 + fsync + rename 으로 원자적으로 쓴다 (0600). 티스토리 쿠키만 저장한다. */
+function writeStateAtomic(file: string, state: StateFile): StateFile {
+  const filtered = keepTistoryCookies(state);
+  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
+  const fd = fs.openSync(tmp, "w", 0o600);
+  try {
+    fs.writeFileSync(fd, JSON.stringify(filtered, null, 2));
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.chmodSync(tmp, 0o600);
+  fs.renameSync(tmp, file);
+  return filtered;
+}
+
+/** 기존 state 파일에서 티스토리 외 쿠키를 제거한다 (락 안에서 실행, 멱등). 개수만 반환한다. */
+export function pruneStateFile(file: string): { total: number; removed: number } {
+  return withStateLock(file, () => {
+    const st = readState(file);
+    const kept = writeStateAtomic(file, st);
+    return { total: st.cookies.length, removed: st.cookies.length - kept.cookies.length };
+  });
+}
+
 /** state 파일 쓰기용 락 (npm run login 과 MCP/배치가 같은 락을 쓴다). 오래된 락은 회수한다. */
 export function withStateLock<T>(stateFile: string, fn: () => T): T {
   const lock = `${stateFile}.lock`;
@@ -127,17 +163,7 @@ export class Session {
   }
 
   private write(state: StateFile): void {
-    const tmp = path.join(path.dirname(this.stateFile), `.${path.basename(this.stateFile)}.${process.pid}.tmp`);
-    const fd = fs.openSync(tmp, "w", 0o600);
-    try {
-      fs.writeFileSync(fd, JSON.stringify(state, null, 2));
-      fs.fsyncSync(fd);
-    } finally {
-      fs.closeSync(fd);
-    }
-    fs.chmodSync(tmp, 0o600);
-    fs.renameSync(tmp, this.stateFile);
-    this.state = state;
+    this.state = writeStateAtomic(this.stateFile, state);
     this.mtimeMs = fs.statSync(this.stateFile).mtimeMs;
   }
 }

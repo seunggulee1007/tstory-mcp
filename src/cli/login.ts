@@ -3,7 +3,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { loadConfig } from "../config.js";
 import { createClient } from "../client.js";
-import { Session, withStateLock } from "../session.js";
+import { Session, isTistoryCookieDomain, withStateLock, type StoredCookie } from "../session.js";
 import { abExec, closeBrowser, uniqueSession } from "../browser.js";
 import { dataUrlToPng, decodeQrPng, renderQrTerminal, scalePng } from "../qr.js";
 
@@ -106,6 +106,10 @@ async function main(): Promise<void> {
   const tmp = `${stateFile}.login-${process.pid}.tmp`;
   try {
     ab(["state", "save", tmp]);
+    // 카카오 계정 쿠키 등은 쓰지 않으므로 티스토리 도메인 쿠키만 남긴다
+    const saved = JSON.parse(fs.readFileSync(tmp, "utf8")) as { cookies?: StoredCookie[] };
+    saved.cookies = (saved.cookies ?? []).filter((c) => isTistoryCookieDomain(c.domain));
+    fs.writeFileSync(tmp, JSON.stringify(saved, null, 2), { mode: 0o600 });
     fs.chmodSync(tmp, 0o600);
     withStateLock(stateFile, () => fs.renameSync(tmp, stateFile));
   } finally {
