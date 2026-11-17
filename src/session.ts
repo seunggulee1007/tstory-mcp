@@ -35,6 +35,17 @@ function readState(file: string): StateFile {
   return st;
 }
 
+/** 티스토리 도메인 쿠키인지 (앞의 "." 제거·소문자화 후 tistory.com 이거나 .tistory.com 로 끝나는 경우만) */
+export function isTistoryCookieDomain(domain: string): boolean {
+  const d = domain.replace(/^\./, "").toLowerCase();
+  return d === "tistory.com" || d.endsWith(".tistory.com");
+}
+
+/** 티스토리 도메인 쿠키만 남긴다 (카카오 계정 쿠키 등은 쓰지 않으므로 저장하지 않는다). origins 등 다른 키는 그대로 둔다. */
+export function keepTistoryCookies<T extends { cookies: StoredCookie[] }>(state: T): T {
+  return { ...state, cookies: state.cookies.filter((c) => typeof c.domain === "string" && isTistoryCookieDomain(c.domain)) };
+}
+
 /** 임시 파일 + fsync + rename 으로 원자적으로 쓴다 (0600). */
 function writeStateAtomic(file: string, state: StateFile): StateFile {
   const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
