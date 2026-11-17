@@ -26,6 +26,17 @@ export const categories = {
   ],
 };
 
+/** GET category.json (관리 화면 전체 트리) */
+export const categoryTree = {
+  categories: [
+    { id: 5, name: "개발", label: "개발", priority: 0, entries: 1, visibility: 20, depth: 1, parent: 0, leaf: false,
+      children: [{ id: 6, name: "자바스크립트", label: "개발/자바스크립트", priority: 0, entries: 1, visibility: 20, depth: 2, parent: 5, children: [], leaf: true }] },
+    { id: 7, name: "일상", label: "일상", priority: 1, entries: 0, visibility: 20, depth: 1, parent: 0, children: [], leaf: true },
+  ],
+  rootLabel: "분류 전체보기",
+  viewChannels: [],
+};
+
 export const postDetail = {
   id: "12",
   title: "두번째",

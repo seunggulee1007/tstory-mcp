@@ -110,6 +110,19 @@ export function buildServer(client: TistoryClient): McpServer {
   );
 
   server.registerTool(
+    "tistory_create_category",
+    {
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+      description: "카테고리를 만듭니다. parent 를 생략하면 최상위에 추가됩니다. 티스토리는 2단계까지만 지원하므로 부모는 최상위 카테고리여야 합니다.",
+      inputSchema: {
+        name: z.string().min(1).describe('카테고리 이름 ("/" 사용 불가)'),
+        parent: z.union([z.string(), z.number()]).optional().describe("부모 카테고리 id 또는 이름 (최상위만 가능)"),
+      },
+    },
+    ({ name, parent }) => run(() => client.createCategory({ name, parent })),
+  );
+
+  server.registerTool(
     "tistory_publish_post",
     {
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },

@@ -50,6 +50,14 @@ export const CategoryNodeSchema: z.ZodType<CategoryNode> = z.lazy(() =>
 
 export const CategoriesSchema = z.object({ categories: z.array(CategoryNodeSchema) }).passthrough();
 
+/** GET {B}/category.json: 카테고리 관리 화면의 전체 트리 (rootLabel 은 저장 시 그대로 되돌려 보낸다) */
+export const CategoryTreeSchema = z
+  .object({ categories: z.array(CategoryNodeSchema), rootLabel: z.string() })
+  .passthrough();
+
+/** PUT {B}/category.json 응답: 실측 형태는 {categoryTree, inputs, rootLabel}. 필드에 의존하지 않으므로 어떤 JSON 객체든 통과시킨다 */
+export const CategorySaveSchema = z.object({}).passthrough();
+
 /** window.Config.post */
 export const PostDetailSchema = z
   .object({

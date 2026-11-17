@@ -143,3 +143,69 @@ describe("TistoryClient (mock fetch)", () => {
     expect(r.placeholder.startsWith("[##_Image|kage@abc/def/GHI/img.png?credential=FAKE&amp;expires=1")).toBe(true);
   });
 });
+
+describe("createCategory (mock fetch)", () => {
+  /** 저장 후 simple.json 에 새 카테고리가 나타나는 가짜 서버 */
+  const server = (opts: { created?: { id: number; name: string; label?: string }; parentId?: number } = {}) => {
+    const route = (u: string, init: RequestInit) => {
+      if (u.endsWith("/manage/category.json")) return init.method === "PUT" ? json({ categoryTree: {} }) : json(F.categoryTree);
+      const cats = structuredClone(F.categoryTree);
+      if (opts.created) {
+        const node = { ...opts.created, priority: 9, entries: 0, children: [] };
+        if (opts.parentId === undefined) cats.categories.push(node as never);
+        else cats.categories.find((c) => c.id === opts.parentId)!.children!.push(node as never);
+      }
+      return json(cats);
+    };
+    return mockClient(route);
+  };
+  const putOf = (calls: { url: string; init: RequestInit }[]) => calls.find((c) => c.init.method === "PUT");
+
+  it("최상위 생성: diff 본문(priority=형제 수, parent 0, depth 1)과 referer", async () => {
+    const { client, calls } = server({ created: { id: 50, name: "새분류" } });
+    const r = await client.createCategory({ name: "  새분류 " });
+    expect(r).toMatchObject({ id: 50, name: "새분류", path: "새분류" });
+    const put = putOf(calls)!;
+    expect(put.url).toBe("https://testblog.tistory.com/manage/category.json");
+    expect((put.init.headers as Record<string, string>).referer).toBe("https://testblog.tistory.com/manage/category");
+    const node = {
+      id: -1, name: "새분류", children: [], depth: 1, opened: true, priority: 2, visibility: 20, parent: 0,
+      viewChannel: null, entries: 0, categoryInfo: {}, isNew: true, updatedData: true,
+    };
+    expect(JSON.parse(String(put.init.body))).toEqual({ rootLabel: "분류 전체보기", delete: [], append: [node], update: [node] });
+  });
+
+  it("하위 생성: 부모를 이름으로 해석, depth 2, label, priority=자식 수", async () => {
+    const { client, calls } = server({ created: { id: 51, name: "타입스크립트" }, parentId: 5 });
+    const r = await client.createCategory({ name: "타입스크립트", parent: "개발" });
+    expect(r).toMatchObject({ id: 51, path: "개발/타입스크립트" });
+    const body = JSON.parse(String(putOf(calls)!.init.body));
+    expect(body.append[0]).toMatchObject({ id: -1, name: "타입스크립트", depth: 2, priority: 1, parent: 5, label: "개발/", isNew: true });
+    expect(body.update).toEqual(body.append);
+  });
+
+  it("부모를 id 로도 지정할 수 있다", async () => {
+    const { client, calls } = server({ created: { id: 52, name: "메모" }, parentId: 7 });
+    await client.createCategory({ name: "메모", parent: 7 });
+    expect(JSON.parse(String(putOf(calls)!.init.body)).append[0]).toMatchObject({ parent: 7, priority: 0, label: "일상/" });
+  });
+
+  it.each([
+    ["빈 이름", { name: "   " }, "비어"],
+    ['"/" 포함', { name: "a/b" }, "/"],
+    ["같은 부모 아래 중복", { name: "일상" }, "이미"],
+    ["하위 중복", { name: "자바스크립트", parent: "개발" }, "이미"],
+    ["부모 없음", { name: "x", parent: "없는분류" }, "부모 카테고리를 찾을 수 없습니다"],
+    ["부모가 하위 카테고리", { name: "x", parent: "개발/자바스크립트" }, "최상위"],
+    ["부모가 하위 카테고리(id)", { name: "x", parent: 6 }, "최상위"],
+  ])("검증 실패(%s)는 PUT 전에 거부", async (_n, input, msg) => {
+    const { client, calls } = server();
+    await expect(client.createCategory(input)).rejects.toThrow(msg);
+    expect(putOf(calls)).toBeUndefined();
+  });
+
+  it("저장 후 새 카테고리를 찾지 못하면 ContractError", async () => {
+    const { client } = server();
+    await expect(client.createCategory({ name: "사라짐" })).rejects.toBeInstanceOf(ContractError);
+  });
+});
