@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { isTistoryCookieDomain, keepTistoryCookies, Session } from "../src/session.js";
+import { isTistoryCookieDomain, keepTistoryCookies, pruneStateFile, Session } from "../src/session.js";
 
 const ck = (domain: string, name = "n") => ({ name, value: "v", domain, path: "/", expires: -1 });
 
@@ -36,5 +36,11 @@ describe("state 파일 정리", () => {
     const saved = JSON.parse(fs.readFileSync(file, "utf8"));
     expect(saved.cookies.map((c: { name: string }) => c.name).sort()).toEqual(["TSSESSION", "a"]);
     expect(saved.origins).toHaveLength(1);
+  });
+  it("prune 은 멱등이고 권한 0600 을 유지한다", () => {
+    const file = tmpState([ck(".kakao.com"), ck("accounts.kakao.com"), ck(".tistory.com")]);
+    expect(pruneStateFile(file)).toEqual({ total: 3, removed: 2 });
+    expect(pruneStateFile(file)).toEqual({ total: 1, removed: 0 });
+    expect(fs.statSync(file).mode & 0o777).toBe(0o600);
   });
 });

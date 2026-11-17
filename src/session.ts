@@ -62,6 +62,15 @@ function writeStateAtomic(file: string, state: StateFile): StateFile {
   return filtered;
 }
 
+/** 기존 state 파일에서 티스토리 외 쿠키를 제거한다 (락 안에서 실행, 멱등). 개수만 반환한다. */
+export function pruneStateFile(file: string): { total: number; removed: number } {
+  return withStateLock(file, () => {
+    const st = readState(file);
+    const kept = writeStateAtomic(file, st);
+    return { total: st.cookies.length, removed: st.cookies.length - kept.cookies.length };
+  });
+}
+
 /** state 파일 쓰기용 락 (npm run login 과 MCP/배치가 같은 락을 쓴다). 오래된 락은 회수한다. */
 export function withStateLock<T>(stateFile: string, fn: () => T): T {
   const lock = `${stateFile}.lock`;
