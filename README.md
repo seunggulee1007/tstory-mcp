@@ -222,6 +222,7 @@ npm run login -- --headed  # 브라우저 창을 눈으로 보면서 진행
 | `tistory_list_posts` | 글 목록 (페이지, 검색어, 카테고리, 공개범위) | |
 | `tistory_get_post` | 글 한 건 (본문 HTML, 태그) | 보호글 비밀번호는 반환하지 않음 |
 | `tistory_list_categories` | 카테고리 (하위 포함, 경로 표시) | |
+| `tistory_create_category` | 카테고리 생성 (이름, 선택적 부모 id·이름) | 2단계까지만 지원 — 부모는 최상위여야 하며 이름에 `/` 불가 |
 | `tistory_publish_post` | 발행 (마크다운/HTML, 카테고리 이름·id, 태그) | **기본 비공개**, 캡차로 막히면 임시저장으로 대체 |
 | `tistory_update_post` | 지정한 필드만 수정 | 공개·보호로 바꿀 때 `confirm: true` 필요 |
 | `tistory_delete_post` | 삭제 | `confirm: true` 필요 |
